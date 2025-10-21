@@ -1,16 +1,11 @@
 import { Text, View, StyleSheet } from "react-native";
-import { Link } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 export default function Page() {
+  const { id } = useLocalSearchParams();
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Search</Text>
-      <Link href="/profile/1">
-        <Text>Profile 1</Text>
-      </Link>
-      <Link href="/profile/2">
-        <Text>Profile 2</Text>
-      </Link>
+      <Text style={styles.text}>User Profile for: {id}</Text>
     </View>
   );
 }

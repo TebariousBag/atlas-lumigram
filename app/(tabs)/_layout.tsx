@@ -8,6 +8,7 @@ import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import LogoutComponent from "@/components/LogoutComponent";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -16,8 +17,9 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
+        headerShown: true,
         tabBarButton: HapticTab,
+        headerRight: () => <LogoutComponent />,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
@@ -81,7 +83,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: "My Profile",
           tabBarIcon: ({ color, focused }) => (
@@ -91,6 +93,13 @@ export default function TabLayout() {
               color={color}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile/[id]"
+        options={{
+          title: "My Profile",
+          href: null,
         }}
       />
     </Tabs>
