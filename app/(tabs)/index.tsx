@@ -83,6 +83,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         decelerationRate="normal"
+        contentContainerStyle={{ paddingBottom: 60 }}
       />
     </View>
   );
