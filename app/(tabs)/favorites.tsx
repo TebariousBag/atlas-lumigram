@@ -2,21 +2,21 @@ import { Text, View, StyleSheet } from "react-native";
 
 export default function Page() {
   return (
-	<View style={styles.container}>
-	  <Text style={styles.text}>Favorites</Text>
-	</View>
+    <View style={styles.container}>
+      <Text style={styles.text}>Favorites</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-	flex: 1,
-	justifyContent: "center",
-	alignItems: "center",
-	backgroundColor: "#fff",
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
   text: {
-	fontSize: 24,
-	fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });

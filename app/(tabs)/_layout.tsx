@@ -18,6 +18,8 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: true,
+        // took me a bit to find how to align title
+        headerTitleAlign: "left",
         tabBarButton: HapticTab,
         headerRight: () => <LogoutComponent />,
         tabBarBackground: TabBarBackground,
@@ -33,7 +35,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Home Feed",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               size={28}

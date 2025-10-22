@@ -1,78 +1,125 @@
-import { Image, StyleSheet, Platform } from "react-native";
+import { View, StyleSheet, Alert, Dimensions, Image, Text } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useState } from "react";
+import { runOnJS } from "react-native-reanimated";
+import { homeFeed } from "@/placeholder";
 
-import { HelloWave } from "@/components/HelloWave";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+const { width } = Dimensions.get("window");
+
+interface FeedItem {
+  image: string;
+  caption: string;
+  id: string;
+  createdBy: string;
+}
+
+interface ImageItemProps {
+  item: FeedItem;
+}
+
+function ImageItem({ item }: ImageItemProps) {
+  const [showCaption, setShowCaption] = useState(false);
+
+  const handleDoubleTap = () => {
+    Alert.alert("Double Tap", "You double tapped the image!");
+  };
+
+  const handleLongPress = () => {
+    setShowCaption(true);
+  };
+  // to remove caption after releasing
+  const handlePressEnd = () => {
+    setShowCaption(false);
+  };
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onStart(() => {
+      runOnJS(handleDoubleTap)();
+    });
+
+  const longPress = Gesture.LongPress()
+    .minDuration(300)
+    .onStart(() => {
+      runOnJS(handleLongPress)();
+    })
+    .onEnd(() => {
+      runOnJS(handlePressEnd)();
+    });
+
+  const composed = Gesture.Race(doubleTap, longPress);
+
+  return (
+    <View style={styles.imageContainer}>
+      <GestureDetector gesture={composed}>
+        <View style={styles.imageWrapper}>
+          <Image
+            source={{ uri: item.image }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+          {showCaption && (
+            <View style={styles.captionOverlay}>
+              <Text style={styles.captionText}>{item.caption}</Text>
+            </View>
+          )}
+        </View>
+      </GestureDetector>
+    </View>
+  );
+}
 
 export default function HomeScreen() {
+  const renderItem = ({ item }: { item: FeedItem }) => (
+    <ImageItem item={item} />
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Hello!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          to see changes. Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this
-          starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{" "}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText>{" "}
-          to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{" "}
-          directory. This will move the current{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <FlashList
+        data={homeFeed}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        decelerationRate="normal"
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  imageContainer: {
+    width: "100%",
+    aspectRatio: 1,
+    marginTop: 10,
+    marginBottom: 0,
+    paddingHorizontal: 10,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
+  imageWrapper: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  captionOverlay: {
+    position: "absolute",
     bottom: 0,
     left: 0,
-    position: "absolute",
+    right: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    padding: 15,
+  },
+  captionText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });

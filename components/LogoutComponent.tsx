@@ -11,7 +11,12 @@ export default function LogoutComponent() {
 
   return (
     <Pressable onPress={logout}>
-      <Ionicons name="log-out-outline" size={24} style={{ marginRight: 16 }} />
+      <Ionicons
+        name="log-out-outline"
+        size={24}
+        color="#56c9b2ff"
+        style={{ marginRight: 16 }}
+      />
     </Pressable>
   );
 }
