@@ -1,21 +1,32 @@
 import { createContext, ReactNode, useContext } from "react";
 import { auth } from "@/firebaseConfig";
-import { createUserWithEmailAndPassword, UserCredential } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+  UserCredential,
+} from "firebase/auth";
 
 type AuthContextType = {
   register: (email: string, password: string) => Promise<UserCredential>;
+  logout: () => Promise<void>;
 };
 
 function register(email: string, password: string) {
   return createUserWithEmailAndPassword(auth, email, password);
 }
 
-const AuthContext = createContext<AuthContextType>({ register });
+function logout() {
+  return signOut(auth);
+}
+
+const AuthContext = createContext<AuthContextType>({ register, logout });
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   return (
-    <AuthContext.Provider value={{ register }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ register, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
