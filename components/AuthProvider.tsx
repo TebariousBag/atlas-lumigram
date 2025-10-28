@@ -1,10 +1,13 @@
 import { createContext, ReactNode, useContext } from "react";
 import { auth } from "@/firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, UserCredential } from "firebase/auth";
 
-const AuthContext = createContext({});
+const AuthContext = createContext({ register });
 
-export const useAuth = () => useContext(AuthContext);
+type AuthContextType = {
+  register: (email: string, password: string) => Promise<UserCredential>;
+};
+export const useAuth = () => useContext<AuthContextType>(AuthContext);
 
 function register(email: string, password: string) {
   return createUserWithEmailAndPassword(auth, email, password);

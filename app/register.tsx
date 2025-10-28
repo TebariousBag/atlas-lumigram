@@ -16,9 +16,10 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const auth = useAuth();
 
-  function register() {
+  async function register() {
+	try {
     alert(`Creating account with ${email} and ${password}`);
-    auth.register(email, password);
+    await auth.register(email, password);
   }
 
   return (
