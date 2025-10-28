@@ -8,11 +8,18 @@ import {
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Page() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const auth = useAuth();
+
+  function register() {
+    alert(`Creating account with ${email} and ${password}`);
+    auth.register(email, password);
+  }
 
   return (
     <View style={styles.container}>
