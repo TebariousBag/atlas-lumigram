@@ -17,9 +17,12 @@ export default function Page() {
   const auth = useAuth();
 
   async function register() {
-	try {
-    alert(`Creating account with ${email} and ${password}`);
-    await auth.register(email, password);
+    try {
+      await auth.register(email, password);
+      router.replace("/(tabs)");
+    } catch (err) {
+      alert(`Unable to create account`);
+    }
   }
 
   return (
@@ -54,12 +57,7 @@ export default function Page() {
         autoCorrect={false}
       />
 
-      <Pressable
-        style={styles.createAccountButton}
-        onPress={() => {
-          router.replace("/(tabs)");
-        }}
-      >
+      <Pressable style={styles.createAccountButton} onPress={register}>
         <Text style={styles.createAccountButtonText}>Create Account</Text>
       </Pressable>
 
