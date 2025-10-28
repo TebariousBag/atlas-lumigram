@@ -11,16 +11,22 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useState } from "react";
 import { useImagePicker } from "@/hooks/useImagePicker";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/components/AuthProvider";
+import firestore from "@/lib/firestore";
+import storage from "@/lib/storage";
 
 export default function Page() {
   const { image, openImagePicker, reset } = useImagePicker();
   const [caption, setCaption] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuth();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!image) {
       Alert.alert("No Image", "Please select an image first.");
       return;
@@ -31,15 +37,44 @@ export default function Page() {
       return;
     }
 
-    Alert.alert("Post Saved!", `${caption}`, [
-      {
-        text: "OK",
-        onPress: () => {
-          reset();
-          setCaption("");
+    if (!user) {
+      Alert.alert("Not Authenticated", "Please log in to create a post.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create a unique filename for the image
+      const filename = `posts/${user.uid}/${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(7)}.jpg`;
+
+      // Upload image to Firebase Storage
+      const { downloadUrl } = await storage.upload(image!, filename);
+
+      // Create post in Firestore
+      await firestore.createPost({
+        imageUrl: downloadUrl,
+        caption: caption.trim(),
+        createdBy: user.uid,
+      });
+
+      Alert.alert("Success", "Your post has been created!", [
+        {
+          text: "OK",
+          onPress: () => {
+            reset();
+            setCaption("");
+          },
         },
-      },
-    ]);
+      ]);
+    } catch (error) {
+      console.error("Error uploading post:", error);
+      Alert.alert("Error", "Failed to upload post. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleReset = () => {
@@ -97,16 +132,31 @@ export default function Page() {
               <Pressable
                 style={[
                   styles.saveButton,
-                  !caption.trim() && styles.saveButtonDisabled,
+                  (!caption.trim() || isUploading) && styles.saveButtonDisabled,
                 ]}
                 onPress={handleSave}
-                disabled={!caption.trim()}
+                disabled={!caption.trim() || isUploading}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
+                {isUploading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
               </Pressable>
 
-              <Pressable style={styles.resetButton} onPress={handleReset}>
-                <Text style={styles.resetButtonText}>Reset</Text>
+              <Pressable
+                style={styles.resetButton}
+                onPress={handleReset}
+                disabled={isUploading}
+              >
+                <Text
+                  style={[
+                    styles.resetButtonText,
+                    isUploading && styles.resetButtonDisabled,
+                  ]}
+                >
+                  Reset
+                </Text>
               </Pressable>
             </>
           )}
@@ -202,5 +252,8 @@ const styles = StyleSheet.create({
     color: "#000",
     fontSize: 16,
     marginTop: 10,
+  },
+  resetButtonDisabled: {
+    opacity: 0.5,
   },
 });
