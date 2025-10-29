@@ -1,21 +1,24 @@
-import { View, StyleSheet, Alert, Dimensions, Image, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Dimensions,
+  Image,
+  Text,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { runOnJS } from "react-native-reanimated";
-import { homeFeed } from "@/placeholder";
+import firestore, { Post } from "@/lib/firestore";
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 const { width } = Dimensions.get("window");
 
-interface FeedItem {
-  image: string;
-  caption: string;
-  id: string;
-  createdBy: string;
-}
-
 interface ImageItemProps {
-  item: FeedItem;
+  item: Post;
 }
 
 function ImageItem({ item }: ImageItemProps) {
@@ -55,7 +58,7 @@ function ImageItem({ item }: ImageItemProps) {
       <GestureDetector gesture={composed}>
         <View style={styles.imageWrapper}>
           <Image
-            source={{ uri: item.image }}
+            source={{ uri: item.imageUrl }}
             style={styles.image}
             resizeMode="cover"
           />
@@ -71,19 +74,117 @@ function ImageItem({ item }: ImageItemProps) {
 }
 
 export default function HomeScreen() {
-  const renderItem = ({ item }: { item: FeedItem }) => (
-    <ImageItem item={item} />
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [lastDoc, setLastDoc] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Fetch initial posts
+  const fetchPosts = useCallback(
+    async (isRefresh = false) => {
+      if (loading) return;
+
+      setLoading(true);
+      try {
+        const result = await firestore.getAllPosts(
+          isRefresh ? undefined : lastDoc || undefined,
+          10
+        );
+
+        if (isRefresh) {
+          setPosts(result.posts);
+        } else {
+          setPosts((prev) => [...prev, ...result.posts]);
+        }
+
+        setLastDoc(result.lastDoc);
+        setHasMore(result.posts.length > 0);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        Alert.alert("Error", "Failed to load posts. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [lastDoc, loading]
   );
+
+  // Pull to refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setLastDoc(null);
+    setHasMore(true);
+    await fetchPosts(true);
+    setRefreshing(false);
+  }, [fetchPosts]);
+
+  // Load more posts (infinite scroll)
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || lastDoc === null) return;
+
+    setLoadingMore(true);
+    try {
+      const result = await firestore.getAllPosts(lastDoc, 10);
+
+      if (result.posts.length > 0) {
+        setPosts((prev) => [...prev, ...result.posts]);
+        setLastDoc(result.lastDoc);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [lastDoc, hasMore, loadingMore]);
+
+  // Initial load
+  useEffect(() => {
+    fetchPosts(true);
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Post }) => <ImageItem item={item} />,
+    []
+  );
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator size="small" color="#56c9b2ff" />
+      </View>
+    );
+  };
+
+  if (loading && posts.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContainer]}>
+        <ActivityIndicator size="large" color="#56c9b2ff" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <FlashList
-        data={homeFeed}
+        data={posts}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         decelerationRate="normal"
         contentContainerStyle={{ paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        estimatedItemSize={width + 10}
+        ListFooterComponent={renderFooter}
       />
     </View>
   );
@@ -93,6 +194,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  centerContainer: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   imageContainer: {
     width: "100%",
@@ -122,5 +227,9 @@ const styles = StyleSheet.create({
   captionText: {
     color: "#fff",
     fontSize: 16,
+  },
+  loadingMore: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
 });

@@ -8,6 +8,10 @@ import {
   orderBy,
   serverTimestamp,
   Timestamp,
+  limit,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore";
 
 // Post data structure
@@ -35,15 +39,39 @@ async function createPost(data: {
   return docRef.id;
 }
 
-// Get all posts
-async function getAllPosts(): Promise<Post[]> {
-  const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+// Get all posts with pagination
+async function getAllPosts(
+  lastDoc?: QueryDocumentSnapshot<DocumentData>,
+  pageSize: number = 10
+): Promise<{
+  posts: Post[];
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+}> {
+  let q = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc"),
+    limit(pageSize)
+  );
+
+  if (lastDoc) {
+    q = query(
+      collection(db, "posts"),
+      orderBy("createdAt", "desc"),
+      startAfter(lastDoc),
+      limit(pageSize)
+    );
+  }
+
   const querySnapshot = await getDocs(q);
 
-  return querySnapshot.docs.map((doc) => ({
+  const posts = querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
   })) as Post[];
+
+  const newLastDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+
+  return { posts, lastDoc: newLastDoc };
 }
 
 // Get posts by a specific user
