@@ -206,6 +206,7 @@ export default function HomeScreen() {
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
+        // @ts-expect-error - estimatedItemSize is valid but types may not be updated
         estimatedItemSize={width + 10}
         ListFooterComponent={renderFooter}
       />

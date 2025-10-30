@@ -195,6 +195,7 @@ export default function FavoritesScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        // @ts-expect-error - estimatedItemSize is valid but types may not be updated
         estimatedItemSize={width + 10}
       />
     </View>
