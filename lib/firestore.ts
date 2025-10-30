@@ -12,6 +12,10 @@ import {
   startAfter,
   QueryDocumentSnapshot,
   DocumentData,
+  doc,
+  setDoc,
+  getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 
 // Post data structure
@@ -91,7 +95,6 @@ async function getPostsByUser(userId: string): Promise<Post[]> {
 
 // Get a single post by ID
 async function getPost(postId: string): Promise<Post | null> {
-  const { getDoc, doc } = await import("firebase/firestore");
   const docRef = doc(db, "posts", postId);
   const docSnap = await getDoc(docRef);
 
@@ -101,9 +104,109 @@ async function getPost(postId: string): Promise<Post | null> {
   return null;
 }
 
+// Add a post to user's favorites
+async function addToFavorites(userId: string, postId: string) {
+  const favoriteRef = doc(db, "favorites", `${userId}_${postId}`);
+
+  // Check if already favorited
+  const favoriteSnap = await getDoc(favoriteRef);
+  if (favoriteSnap.exists()) {
+    // Already in favorites, don't add again
+    return;
+  }
+
+  // Add to favorites
+  await setDoc(favoriteRef, {
+    userId,
+    postId,
+    createdAt: serverTimestamp(),
+  });
+}
+
+// Remove a post from user's favorites
+async function removeFromFavorites(userId: string, postId: string) {
+  const favoriteRef = doc(db, "favorites", `${userId}_${postId}`);
+
+  // Check if the favorite exists before trying to delete
+  const favoriteSnap = await getDoc(favoriteRef);
+  if (!favoriteSnap.exists()) {
+    console.log("Favorite does not exist, nothing to remove");
+    return;
+  }
+
+  await deleteDoc(favoriteRef);
+  console.log("Successfully deleted favorite:", `${userId}_${postId}`);
+}
+
+// Check if a post is in user's favorites
+async function isFavorite(userId: string, postId: string): Promise<boolean> {
+  const favoriteRef = doc(db, "favorites", `${userId}_${postId}`);
+  const favoriteSnap = await getDoc(favoriteRef);
+  return favoriteSnap.exists();
+}
+
+// Toggle favorite (add if not exists, remove if exists)
+async function toggleFavorite(
+  userId: string,
+  postId: string
+): Promise<boolean> {
+  const isFav = await isFavorite(userId, postId);
+
+  if (isFav) {
+    await removeFromFavorites(userId, postId);
+    return false;
+  } else {
+    await addToFavorites(userId, postId);
+    return true;
+  }
+}
+
+// Get all favorite post IDs for a user
+async function getUserFavorites(userId: string): Promise<string[]> {
+  const q = query(collection(db, "favorites"), where("userId", "==", userId));
+  const querySnapshot = await getDocs(q);
+
+  return querySnapshot.docs.map((doc) => doc.data().postId);
+}
+
+// Get favorite posts with full post data for a user
+async function getFavoritePosts(userId: string): Promise<Post[]> {
+  // Get favorite post IDs
+  const favoriteIds = await getUserFavorites(userId);
+
+  if (favoriteIds.length === 0) {
+    return [];
+  }
+
+  // Fetch each post individually
+  const posts: Post[] = [];
+
+  for (const postId of favoriteIds) {
+    const post = await getPost(postId);
+    if (post) {
+      posts.push(post);
+    }
+  }
+
+  // Sort by createdAt descending (newest first)
+  posts.sort((a, b) => {
+    const aTime = a.createdAt?.toMillis() || 0;
+    const bTime = b.createdAt?.toMillis() || 0;
+    return bTime - aTime;
+  });
+
+  return posts;
+}
+
 export default {
   createPost,
   getAllPosts,
   getPostsByUser,
   getPost,
+  addToFavorites,
+  removeFromFavorites,
+  isFavorite,
+  toggleFavorite,
+  getUserFavorites,
+  getFavoritePosts,
 };

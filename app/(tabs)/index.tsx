@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from "react";
 import { runOnJS } from "react-native-reanimated";
 import firestore, { Post } from "@/lib/firestore";
 import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { useAuth } from "@/components/AuthProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -23,9 +24,31 @@ interface ImageItemProps {
 
 function ImageItem({ item }: ImageItemProps) {
   const [showCaption, setShowCaption] = useState(false);
+  const { user } = useAuth();
 
-  const handleDoubleTap = () => {
-    Alert.alert("Double Tap", "You double tapped the image!");
+  const handleDoubleTap = async () => {
+    if (!user) {
+      Alert.alert("Not Logged In", "Please log in to add favorites.");
+      return;
+    }
+
+    try {
+      const isFav = await firestore.toggleFavorite(user.uid, item.id);
+      if (isFav) {
+        Alert.alert(
+          "Added to Favorites",
+          "Post has been added to your favorites!"
+        );
+      } else {
+        Alert.alert(
+          "Removed from Favorites",
+          "Post has been removed from your favorites."
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      Alert.alert("Error", "Failed to update favorites. Please try again.");
+    }
   };
 
   const handleLongPress = () => {
